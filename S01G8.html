@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e3a6e">
+<title>SBuddy Match</title>
+<style>
+/* ===== Design tokens (mobile-first, touch targets >= 48px, text >= 16px) ===== */
+:root{--navy:#1e3a6e;--navy2:#2c4f94;--bg:#f6f7fb;--card:#fff;--line:#d5dbe8;--text:#1a2233;--mute:#5d6b86;
+--ok:#1f7a4d;--okbg:#e2f4ea;--err:#b3261e;--errbg:#fdecea;--warn:#8a5a00;--warnbg:#fff1d6;--gold:#c98a00;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#dfe4ef;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;color:var(--text);font-size:16px}
+#app{max-width:430px;margin:0 auto;min-height:100vh;min-height:100dvh;background:var(--bg);position:relative;display:flex;flex-direction:column}
+.screen{flex:1;padding:16px 16px 96px;overflow-x:hidden}
+h1{font-size:28px;margin:0 0 6px}h2{font-size:20px;margin:0 0 8px}h3{font-size:16px;margin:16px 0 8px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 10px;line-height:1.45}.mute{color:var(--mute)}.small{font-size:16px}.center{text-align:center}
+button,input,textarea,select{font:inherit}
+.btn{min-height:48px;padding:12px 18px;border-radius:12px;border:2px solid var(--navy);background:var(--navy);color:#fff;font-weight:700;width:100%;cursor:pointer}
+.btn.sec{background:#fff;color:var(--navy)}.btn.danger{background:#fff;color:var(--err);border-color:var(--err)}
+.btn:disabled{opacity:.55;cursor:not-allowed}.btn.sm{width:auto;min-height:48px}
+.link{background:none;border:0;color:var(--navy);text-decoration:underline;font-weight:700;min-height:48px;padding:0 8px;cursor:pointer}
+label{display:block;font-weight:700;margin:12px 0 6px}
+input[type=text],input[type=email],input[type=password],textarea,select{width:100%;min-height:48px;padding:12px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--text)}
+textarea{min-height:96px;resize:vertical}
+input:focus,textarea:focus,button:focus-visible,[tabindex]:focus-visible{outline:3px solid #7fa2ee;outline-offset:2px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card.tap{cursor:pointer;display:block;width:100%;text-align:left}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:16px;font-weight:700;background:#e0e6f5;color:var(--navy)}
+.badge.swap{background:var(--okbg);color:var(--ok)}.badge.warn{background:var(--warnbg);color:var(--warn)}.badge.err{background:var(--errbg);color:var(--err)}
+.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.gap{margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:48px;padding:8px 16px;border-radius:999px;border:2px solid var(--navy);background:#fff;color:var(--navy);font-weight:600;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--navy);color:#fff}.chip[aria-pressed=true]::before{content:"✓ "}
+.seg{display:flex;border:2px solid var(--navy);border-radius:12px;overflow:hidden}
+.seg button{flex:1;min-height:48px;border:0;background:#fff;color:var(--navy);font-weight:700;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--navy);color:#fff}
+.topbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}.topbar h2{margin:0;flex:1}
+.back{min-width:48px;min-height:48px;border:0;background:none;font-size:24px;color:var(--navy);cursor:pointer}
+.err-msg{background:var(--errbg);color:var(--err);border-radius:10px;padding:10px 12px;margin-top:10px;font-weight:600}
+.err-msg::before{content:"⚠ "}
+.ok-msg{background:var(--okbg);color:var(--ok);border-radius:10px;padding:10px 12px;margin-top:10px;font-weight:600}
+nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:#fff;border-top:2px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav.tabs button{flex:1;min-height:64px;border:0;background:#fff;color:var(--mute);font-size:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav.tabs button[aria-current=page]{color:var(--navy);font-weight:800;background:#e8edf8;box-shadow:inset 0 3px 0 var(--navy)}
+.ico{font-size:20px}
+.skel{height:84px;border-radius:var(--r);background:linear-gradient(90deg,#e6eaf3 25%,#f2f4fa 50%,#e6eaf3 75%);background-size:200% 100%;animation:sh 1.2s infinite;margin-bottom:12px}
+@keyframes sh{to{background-position:-200% 0}}
+.empty{border:2px dashed var(--line);border-radius:var(--r);padding:20px;text-align:center;color:var(--mute)}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);max-width:400px;width:calc(100% - 32px);z-index:50;pointer-events:none}
+#toast div{margin-top:8px;padding:12px 14px;border-radius:12px;font-weight:700;box-shadow:0 4px 14px #0003;background:var(--navy);color:#fff}
+#toast div.err{background:var(--err)}#toast div.ok{background:var(--ok)}
+#sheetWrap{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;justify-content:center;z-index:20}
+#sheetWrap.open{display:flex}
+#sheet{background:#fff;width:100%;max-width:430px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px 24px}
+.photo{width:100%;max-height:200px;object-fit:cover;border-radius:12px;border:2px solid var(--line)}
+.drop{border:2px dashed var(--navy2);border-radius:12px;min-height:64px;display:flex;align-items:center;justify-content:center;color:var(--mute);width:100%;background:#fff;cursor:pointer;font-weight:600}
+.timer{border-radius:12px;padding:10px;text-align:center;font-weight:800;background:var(--warnbg);color:var(--warn)}
+.timer.over{background:var(--errbg);color:var(--err)}
+#msgs{display:flex;flex-direction:column;gap:8px;margin:12px 0;min-height:160px}
+.msg{max-width:82%;padding:10px 12px;border-radius:14px;background:#e4e8f0;align-self:flex-start;word-wrap:break-word}
+.msg.me{background:#cfdcf7;align-self:flex-end}
+.msg small{display:block;color:var(--mute);margin-top:2px;font-size:14px}
+.msg audio{max-width:100%;height:40px}
+.stars{display:flex;justify-content:center;gap:2px}
+.stars button{min-width:48px;min-height:48px;font-size:30px;border:0;background:none;color:var(--gold);cursor:pointer}
+.big{font-size:34px;font-weight:800;color:var(--navy)}
+.check{width:64px;height:64px;border-radius:50%;background:var(--okbg);color:var(--ok);font-size:34px;display:flex;align-items:center;justify-content:center;margin:8px auto}
+.dots{display:flex;gap:8px;justify-content:center;margin:12px 0}.dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--navy)}
+.hint{border:2px dashed var(--line);border-radius:12px;padding:10px;font-size:16px;color:var(--mute);margin-top:14px}
+.list-item{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border:0}
+.pos{color:var(--ok);font-weight:800}.neg{color:var(--err);font-weight:800}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="sheetWrap" role="dialog" aria-modal="true"><div id="sheet"></div></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   SBuddy Match – IS2023 Group 8 (S01G8) – Week 11 functional prototype
+   Single-file mobile-first web app (runs in any Android/iOS browser,
+   can be wrapped as APK with PWABuilder / Capacitor).
+   Layers:  1) Config & helpers  2) Repo (data layer, async, localStorage
+   "demo cloud" – swap-ready for Firestore)  3) AI service (Gemini + local
+   fallback)  4) Views  5) Actions / events
+   ===================================================================== */
+
+/* ---------- 1. Config & helpers ---------- */
+const DB_KEY = 'sbuddy_db_v1', UID_KEY = 'sbuddy_uid', AI_KEY = 'sbuddy_gemini_key';
+const GEMINI_MODEL = 'gemini-2.0-flash';           // change here if the model name is updated
+const SUBJECTS = ['Python', 'English', 'Calculus', 'Excel', 'Accounting', 'Other'];
+const FIVE_MIN_PTS = 8, STARTER_PTS = 20, CHECKIN_PTS = 2;
+const now = () => Date.now();
+const uid = p => p + Math.random().toString(36).slice(2, 8);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const $ = s => document.querySelector(s);
+function ago(ts) { const m = Math.max(0, Math.round((now() - ts) / 60000)); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
+function toast(msg, type = '') { const d = document.createElement('div'); d.className = type; d.textContent = (type === 'err' ? '⚠ ' : type === 'ok' ? '✓ ' : '') + msg; $('#toast').appendChild(d); setTimeout(() => d.remove(), 3200); }
+function showSheet(html) { $('#sheet').innerHTML = html; $('#sheetWrap').classList.add('open'); }
+function closeSheet() { $('#sheetWrap').classList.remove('open'); $('#sheet').innerHTML = ''; }
+
+/* ---------- 2. Repo: data layer (all calls async so loading states are real) ---------- */
+function seed() {
+  const t = now(), mk = (id, name, email, role, pts, rating, n, subs, avail) => ({ id, name, email, pw: 'demo1234', role, points: pts, rating, n, subjects: subs, avail, onboarded: id !== 'u1', lastCheckin: '' });
+  return {
+    users: [
+      mk('u1', 'Alex', 'alex@demo.hk', 'student', 42, 0, 0, [], true),
+      mk('u2', 'Sam', 'sam@demo.hk', 'student', 60, 4.8, 25, ['Python', 'Calculus'], true),
+      mk('u3', 'Mia', 'mia@demo.hk', 'student', 35, 4.6, 12, ['English', 'Excel'], true),
+      mk('u4', 'Ken', 'ken@demo.hk', 'student', 28, 4.2, 8, ['Calculus', 'Accounting'], false),
+      mk('u5', 'Moderator', 'mod@demo.hk', 'mod', 0, 0, 0, [], true),
+      mk('u6', 'Chloe', 'chloe@demo.hk', 'student', 30, 4.5, 6, ['Python'], true)
+    ],
+    posts: [
+      { id: 'p1', type: 'ask', subject: 'Python', help: '5min', desc: 'My for-loop gives IndexError: list index out of range. Which line is wrong?', photo: '', authorId: 'u4', status: 'open', createdAt: t - 6 * 60000, difficulty: 'Easy' },
+      { id: 'p2', type: 'offer', subject: 'English', help: 'swap', desc: 'I can review essay structure and paragraphs. Looking for Excel basics (pivot tables) in return.', photo: '', authorId: 'u3', status: 'open', createdAt: t - 50 * 60000, difficulty: 'Medium' },
+      { id: 'p3', type: 'ask', subject: 'Calculus', help: '5min', desc: 'How do I apply the chain rule to d/dx of sin(x^2)? Need a quick check before tomorrow.', photo: '', authorId: 'u6', status: 'open', createdAt: t - 3 * 3600000, difficulty: 'Medium' },
+      { id: 'p4', type: 'offer', subject: 'Python', help: 'swap', desc: 'Happy to explain debugging and basic loops. Would like help with Accounting ratios.', photo: '', authorId: 'u2', status: 'open', createdAt: t - 26 * 3600000, difficulty: 'Easy' }
+    ],
+    sessions: [],
+    ledger: [[20, 20, 'Welcome bonus'], [8, 28, 'Helped a peer'], [8, 36, 'Helped a peer'], [-8, 28, 'Asked for help'], [8, 36, 'Helped a peer'], [6, 42, 'Daily check-in bonus']]
+      .map((x, i) => ({ uid: 'u1', delta: x[0], balance: x[1], note: x[2], ts: t - (7 - i) * 86400000 })),
+    reports: []
+  };
+}
+const Repo = {
+  d: null,
+  load() { try { this.d = JSON.parse(localStorage.getItem(DB_KEY)); } catch (e) { this.d = null; } if (!this.d) { this.d = seed(); this.save(); } },
+  save() { try { localStorage.setItem(DB_KEY, JSON.stringify(this.d)); return true; } catch (e) { toast('Device storage is full. Try removing photos or reset demo data.', 'err'); return false; } },
+  reset() { this.d = seed(); this.save(); },
+  user(id) { return this.d.users.find(u => u.id === id); },
+  async login(email, pw) {
+    await sleep(500);
+    const u = this.d.users.find(x => x.email.toLowerCase() === email.trim().toLowerCase());
+    if (!u || u.pw !== pw) throw new Error('Wrong email or password. Check the demo account below.');
+    return u;
+  },
+  async register(name, email, pw) {
+    await sleep(500);
+    if (this.d.users.some(x => x.email.toLowerCase() === email.trim().toLowerCase())) throw new Error('This email is already registered. Try logging in.');
+    const u = { id: uid('u'), name: name.trim(), email: email.trim(), pw, role: 'student', points: STARTER_PTS, rating: 0, n: 0, subjects: [], avail: true, onboarded: false, lastCheckin: '' };
+    this.d.users.push(u); this.addLedger(u, STARTER_PTS, 'Welcome bonus'); this.save(); return u;
+  },
+  addLedger(u, delta, note) { this.d.ledger.push({ uid: u.id, delta, balance: u.points, note, ts: now() }); },
+  async listPosts() { await sleep(450); return this.d.posts.filter(p => p.status === 'open').sort((a, b) => b.createdAt - a.createdAt); },
+  async createPost(p) { await sleep(300); const post = { id: uid('p'), status: 'open', createdAt: now(), ...p }; this.d.posts.push(post); this.save(); return post; },
+  deletePost(id) { this.d.posts = this.d.posts.filter(p => p.id !== id); this.save(); },
+  /* helper ranking: subject match + rating + availability (used with the AI-detected subject) */
+  rankHelpers(subject, meId) {
+    return this.d.users.filter(u => u.role === 'student' && u.id !== meId && u.subjects.length)
+      .map(u => { const match = u.subjects.includes(subject); const score = (match ? 5 : 0) + u.rating + (u.avail ? 2 : -1); return { u, match, score }; })
+      .sort((a, b) => b.score - a.score).slice(0, 3);
+  },
+  createSession({ post, askerId, helperId }) {
+    const pts = post.help === '5min' ? FIVE_MIN_PTS : 0;
+    const asker = this.user(askerId), helper = this.user(helperId);
+    const s = { id: uid('s'), postId: post.id, askerId, helperId, subject: post.subject, pts, durMs: (post.help === '5min' ? 5 : 30) * 60000, startedAt: now(), status: 'active', ratings: {}, messages: [] };
+    s.messages.push(askerId === post.authorId
+      ? { from: helperId, text: `Hi ${asker.name}! I saw your ${post.subject} question. What have you tried so far?`, ts: now() }
+      : { from: askerId, text: post.desc, ts: now() });
+    const p = this.d.posts.find(x => x.id === post.id); if (p) p.status = 'matched';
+    this.d.sessions.push(s); this.save(); return s;
+  },
+  async finish(sid) {
+    await sleep(500);
+    const s = this.d.sessions.find(x => x.id === sid); if (!s || s.status === 'done') return s;
+    const a = this.user(s.askerId), h = this.user(s.helperId);
+    if (s.pts > 0) {
+      if (a.points < s.pts) throw new Error('Not enough points to complete this session.');
+      a.points -= s.pts; h.points += s.pts;
+      this.addLedger(a, -s.pts, 'Asked for help (' + s.subject + ')'); this.addLedger(h, s.pts, 'Helped a peer (' + s.subject + ')');
+    }
+    s.status = 'done'; s.endedAt = now(); this.save(); return s;
+  },
+  rate(sid, rater, stars, comment) {
+    const s = this.d.sessions.find(x => x.id === sid); s.ratings[rater] = { stars, comment };
+    const other = this.user(rater === s.askerId ? s.helperId : s.askerId);
+    other.rating = Math.round(((other.rating * other.n + stars) / (other.n + 1)) * 10) / 10; other.n += 1; this.save();
+  },
+  report(r) { this.d.reports.push({ id: uid('r'), status: 'open', ts: now(), ...r }); this.save(); }
+};
+
+/* ---------- 3. AI service: Gemini API (optional key) + local fallback ---------- */
+const KEYWORDS = { Python: ['python', 'loop', 'list', 'index', 'error', 'def ', 'pandas', 'code'], Calculus: ['derivative', 'integral', 'limit', 'chain rule', 'calculus', 'd/dx'], English: ['essay', 'paragraph', 'grammar', 'thesis', 'writing'], Excel: ['excel', 'pivot', 'vlookup', 'spreadsheet', 'formula'], Accounting: ['ledger', 'balance sheet', 'ratio', 'accounting', 'debit', 'credit'] };
+function localTag(text) {
+  const t = text.toLowerCase(); let best = 'Other', hit = 0;
+  for (const [s, ks] of Object.entries(KEYWORDS)) { const c = ks.filter(k => t.includes(k)).length; if (c > hit) { hit = c; best = s; } }
+  const hard = ['proof', 'integral', 'recursion', 'regression', 'optimi'].some(k => t.includes(k)) || t.length > 220;
+  return { subject: best, difficulty: hard ? 'Hard' : t.length > 90 ? 'Medium' : 'Easy' };
+}
+async function aiAnalyse(text, chosen) {
+  const key = localStorage.getItem(AI_KEY);
+  if (key) {
+    try {
+      const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 8000);
+      const prompt = `Classify this university study question. Subjects allowed: ${SUBJECTS.join(', ')}. Difficulty: Easy, Medium or Hard. Reply ONLY JSON {"subject":"","difficulty":""}.\nQuestion: ${text}`;
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+        method: 'POST', signal: ctrl.signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json' } })
+      });
+      clearTimeout(to); if (!res.ok) throw new Error('HTTP ' + res.status);
+      const o = JSON.parse((await res.json()).candidates[0].content.parts[0].text);
+      if (!SUBJECTS.includes(o.subject) || !['Easy', 'Medium', 'Hard'].includes(o.difficulty)) throw new Error('bad format');
+      return { ...o, source: 'Gemini API' };
+    } catch (e) { return { ...localTag(text), source: 'Local rules (Gemini unavailable)' }; }
+  }
+  await sleep(600);
+  return { ...localTag(text), source: 'Local rules (no API key set)' };
+}
+
+/* ---------- 4. State & Views ---------- */
+let me = null, route = { name: 'login' }, ui = { d: {}, form: { type: 'ask', subject: '', help: '5min' }, photo: '', filter: { q: '', subject: '' }, ob: 0, err: '', busy: false, typing: false };
+let timerId = null, rec = null;
+const app = $('#app');
+const VIEWS = {};
+
+function nav(name, arg) { clearInterval(timerId); route = { name, arg }; ui.err = ''; render(); window.scrollTo(0, 0); }
+function render() {
+  const tabs = ['home', 'ask', 'chats', 'me'].includes(route.name);
+  app.innerHTML = `<main class="screen" id="screen">${VIEWS[route.name]()}</main>` + (tabs ? navBar() : '');
+  if (route.name === 'home') loadHome();
+  if (route.name === 'chat') startTimer();
+}
+function navBar() {
+  const t = [['home', '🏠', 'Home'], ['ask', '➕', 'Ask'], ['chats', '💬', 'Chats'], ['me', '👤', 'Me']];
+  return `<nav class="tabs" aria-label="Main">${t.map(x => `<button data-act="tab" data-to="${x[0]}" ${route.name === x[0] ? 'aria-current="page"' : ''}><span class="ico" aria-hidden="true">${x[1]}</span>${x[2]}</button>`).join('')}</nav>`;
+}
+const val = n => esc(ui.d[n] || '');
+const errBox = () => ui.err ? `<div class="err-msg" role="alert">${esc(ui.err)}</div>` : '';
+
+VIEWS.login = () => `
+  <div class="center" style="margin-top:40px"><h1 style="color:var(--navy);font-size:36px">SBuddy<br>Match</h1><p class="mute">Ask in 5 min. Swap skills.</p></div>
+  <form data-form="login" novalidate>
+    <label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" value="${val('email')}">
+    <label for="pw">Password</label><input id="pw" name="pw" type="password" autocomplete="current-password" value="${val('pw')}">
+    ${errBox()}
+    <div class="gap"><button class="btn" ${ui.busy ? 'disabled' : ''}>${ui.busy ? 'Logging in…' : 'Log in'}</button></div>
+  </form>
+  <div class="center"><button class="link" data-act="nav" data-to="signup">Sign up</button></div>
+  <div class="hint"><b>Demo accounts</b> (password <code>demo1234</code>)<br>Student: alex@demo.hk · Helper: sam@demo.hk · Moderator: mod@demo.hk<br>First time? A 3-step intro appears after sign-up.</div>`;
+
+VIEWS.signup = () => `
+  <div class="topbar"><button class="back" data-act="nav" data-to="login" aria-label="Back to login">←</button><h2>Create account</h2></div>
+  <form data-form="signup" novalidate>
+    <label for="name">Display name</label><input id="name" name="name" type="text" autocomplete="nickname" value="${val('name')}">
+    <label for="email">University email</label><input id="email" name="email" type="email" autocomplete="email" value="${val('email')}">
+    <label for="pw">Password (min 6 characters)</label><input id="pw" name="pw" type="password" autocomplete="new-password" value="${val('pw')}">
+    ${errBox()}
+    <p class="mute gap">You get ${STARTER_PTS} free starter points.</p>
+    <button class="btn" ${ui.busy ? 'disabled' : ''}>${ui.busy ? 'Creating…' : 'Sign up'}</button>
+  </form>`;
+
+const OB = [['❓', 'Ask in 5 minutes', 'Post one specific study problem with a photo. Get matched with a peer helper.'], ['🔁', 'Swap skills', 'Strong in one subject, weak in another? Offer a skill and swap for help.'], ['⭐', 'Earn free points', 'Help others to earn points. Points are for in-app use only and cannot be cashed out.']];
+VIEWS.onboarding = () => {
+  const i = ui.ob, o = OB[i];
+  return `<div class="card center" style="margin-top:40px"><div style="font-size:56px" aria-hidden="true">${o[0]}</div><h2>${o[1]}</h2><p>${o[2]}</p></div>
+  <div class="dots" aria-label="Step ${i + 1} of 3">${OB.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+  <p class="center mute">Step ${i + 1} of 3</p>
+  <button class="btn" data-act="obNext">${i < 2 ? 'Next' : 'Get started'}</button>
+  <div class="center"><button class="link" data-act="obSkip">Skip</button></div>`;
+};
+
+VIEWS.home = () => `
+  <div class="row between"><h2>Hi, ${esc(me.name)}</h2><span class="badge" aria-label="Points balance">${me.points} pts</span></div>
+  <div class="row gap"><button class="btn" data-act="quick" data-type="ask">Ask</button><button class="btn sec" data-act="quick" data-type="offer">Offer</button></div>
+  <label for="q">Search match cards</label>
+  <input id="q" type="text" placeholder="e.g. Python, essay…" value="${esc(ui.filter.q)}">
+  <div class="chips gap" role="group" aria-label="Filter by subject">
+    <button class="chip" data-act="filter" data-s="" aria-pressed="${!ui.filter.subject}">All</button>
+    ${SUBJECTS.map(s => `<button class="chip" data-act="filter" data-s="${s}" aria-pressed="${ui.filter.subject === s}">${s}</button>`).join('')}
+  </div>
+  <h3>Match cards</h3><div id="list"></div>`;
+
+async function loadHome() {
+  const box = $('#list'); box.innerHTML = '<div class="skel"></div><div class="skel"></div><div class="skel"></div><p class="mute center">Loading match cards…</p>';
+  try { ui.posts = await Repo.listPosts(); drawList(); } catch (e) { box.innerHTML = `<div class="err-msg" role="alert">Could not load cards. Check your connection.</div><button class="btn sec gap" data-act="reload">Retry</button>`; }
+}
+function drawList() {
+  const box = $('#list'); if (!box) return; const q = ui.filter.q.toLowerCase();
+  const items = (ui.posts || []).filter(p => p.authorId !== me.id && (!ui.filter.subject || p.subject === ui.filter.subject) && (!q || (p.subject + ' ' + p.desc).toLowerCase().includes(q)));
+  box.innerHTML = items.length ? items.map(cardHtml).join('') : `<div class="empty">No cards found.<br>“Be the first – post a request!”</div>`;
+}
+function cardHtml(p) {
+  const a = Repo.user(p.authorId); const badge = p.help === '5min' ? `<span class="badge">${FIVE_MIN_PTS} pts</span>` : `<span class="badge swap">🔁 Swap</span>`;
+  return `<button class="card tap" data-act="openCard" data-id="${p.id}"><div class="row between">${badge}<span class="mute">${p.type === 'ask' ? 'Asking' : 'Offering'}</span></div>
+  <b style="font-size:18px">${esc(p.subject)}</b><div class="mute">${p.help === '5min' ? '5-min help' : '30-min swap'} · ${esc(a?.name || 'Student')} · ${ago(p.createdAt)}</div></button>`;
+}
+
+VIEWS.ask = () => {
+  const f = ui.form, isAsk = f.type === 'ask';
+  return `<div class="topbar"><h2>${isAsk ? 'Ask for help' : 'Offer a skill'}</h2></div>
+  <div class="seg" role="group" aria-label="Post type"><button data-act="ftype" data-v="ask" aria-pressed="${isAsk}">Ask</button><button data-act="ftype" data-v="offer" aria-pressed="${!isAsk}">Offer</button></div>
+  <form data-form="post" novalidate>
+    <label>Camera / photo (optional)</label>
+    ${ui.photo ? `<img class="photo" src="${ui.photo}" alt="Photo of the problem"><button type="button" class="link" data-act="rmPhoto">Remove photo</button>` : `<button type="button" class="drop" data-act="pickPhoto">📷 Take or choose a photo</button>`}
+    <input id="photoIn" type="file" accept="image/*" capture="environment" class="sr" tabindex="-1">
+    <label id="subLbl">Subject</label>
+    <div class="chips" role="group" aria-labelledby="subLbl">${SUBJECTS.map(s => `<button type="button" class="chip" data-act="fsub" data-v="${s}" aria-pressed="${f.subject === s}">${s}</button>`).join('')}</div>
+    <label id="hLbl">Help type</label>
+    <div class="seg" role="group" aria-labelledby="hLbl"><button type="button" data-act="fhelp" data-v="5min" aria-pressed="${f.help === '5min'}">5-min · ${FIVE_MIN_PTS} pts</button><button type="button" data-act="fhelp" data-v="swap" aria-pressed="${f.help === 'swap'}">30-min swap</button></div>
+    <label for="desc">${isAsk ? 'What do you need?' : 'What can you teach / what do you want in return?'}</label>
+    <textarea id="desc" name="desc" placeholder="Describe the problem briefly (min 10 characters)">${val('desc')}</textarea>
+    <p class="mute gap">Integrity rule: helpers explain concepts and methods; they must not complete graded assignments.</p>
+    ${errBox()}
+    <button class="btn" ${ui.busy ? 'disabled' : ''}>${ui.busy ? 'Analysing with AI…' : isAsk ? 'Post request' : 'Post offer'}</button>
+  </form>`;
+};
+
+VIEWS.chats = () => {
+  const S = Repo.d.sessions.filter(s => s.askerId === me.id || s.helperId === me.id).sort((a, b) => (a.status === 'active' ? -1 : 1) - (b.status === 'active' ? -1 : 1) || b.startedAt - a.startedAt);
+  const P = Repo.d.posts.filter(p => p.authorId === me.id && p.status === 'open');
+  return `<h2>Chats</h2>
+  ${S.length ? S.map(s => { const o = Repo.user(s.askerId === me.id ? s.helperId : s.askerId); return `<button class="card tap" data-act="openChat" data-id="${s.id}"><div class="row between"><b>${esc(o.name)} · ${esc(s.subject)}</b><span class="badge ${s.status === 'active' ? 'warn' : ''}">${s.status === 'active' ? '● Active' : '✓ Done'}</span></div><div class="mute">${ago(s.startedAt)} · ${s.pts ? s.pts + ' pts' : 'Swap'}</div></button>`; }).join('') : `<div class="empty">No sessions yet.<br>Post a request or help someone from Home.</div>`}
+  <h3>My open posts</h3>
+  ${P.length ? P.map(p => `<div class="card"><div class="row between"><b>${esc(p.subject)} · ${p.type === 'ask' ? 'Ask' : 'Offer'}</b><span class="badge warn">Waiting</span></div><p class="mute">${esc(p.desc)}</p><button class="btn danger sm" data-act="delPost" data-id="${p.id}">Delete post</button></div>`).join('') : '<div class="empty">No open posts.</div>'}`;
+};
+
+VIEWS.chat = () => {
+  const s = Repo.d.sessions.find(x => x.id === route.arg), o = Repo.user(s.askerId === me.id ? s.helperId : s.askerId), asker = s.askerId === me.id;
+  return `<div class="topbar"><button class="back" data-act="tab" data-to="chats" aria-label="Back to chats">←</button><h2>Matched: ${esc(o.name)}</h2><span class="badge swap">${o.rating ? o.rating + ' ★' : 'New'}</span></div>
+  <div class="timer" id="timer" role="timer">${esc(s.subject)} · --:--</div>
+  <div id="msgs" aria-live="polite"></div>
+  ${s.status === 'active' ? `
+  <form data-form="msg" class="row" autocomplete="off"><input id="msgIn" name="msg" type="text" placeholder="Type message" aria-label="Type message"><button class="btn sm" style="width:auto">Send</button></form>
+  <div class="row gap"><button class="btn sec" id="voiceBtn" data-act="voice">🎤 Voice note</button></div>
+  <div class="gap"><button class="btn" data-act="solve" ${ui.busy ? 'disabled' : ''}>${asker ? 'Mark as solved' : 'Ask to confirm solved'}</button></div>`
+    : `<div class="gap"><button class="btn" data-act="viewResult" data-id="${s.id}">View result</button></div>`}
+  <div class="center"><button class="link" data-act="report" data-id="${s.id}">Report this session</button></div>`;
+};
+
+VIEWS.result = () => {
+  const s = Repo.d.sessions.find(x => x.id === route.arg), asker = s.askerId === me.id, o = Repo.user(asker ? s.helperId : s.askerId);
+  const mine = s.ratings[me.id], before = asker ? me.points + s.pts : me.points - s.pts;
+  return `<div class="center"><div class="check" aria-hidden="true">✓</div><h2 style="color:var(--navy)">Session complete</h2></div>
+  <div class="card center"><div class="mute">Points</div><div class="big">${before} → ${me.points}</div><div class="mute">${s.pts ? `${s.pts} pts ${asker ? 'sent to' : 'received from'} ${esc(o.name)}` : 'Skill swap – no points exchanged'}</div></div>
+  <h3>Rate your ${asker ? 'helper' : 'peer'}</h3>
+  ${mine ? `<div class="ok-msg" role="status">Thanks! You rated ${mine.stars} of 5 stars.</div>` : `
+  <div class="stars" role="radiogroup" aria-label="Rating">${[1, 2, 3, 4, 5].map(i => `<button data-act="star" data-v="${i}" role="radio" aria-checked="${ui.stars === i}" aria-label="${i} of 5 stars">${i <= (ui.stars || 0) ? '★' : '☆'}</button>`).join('')}</div>
+  <p class="center mute">${ui.stars ? ui.stars + ' of 5 selected' : 'Tap a star'}</p>
+  <input id="cmt" name="cmt" type="text" placeholder="Optional comment" aria-label="Optional comment" value="${val('cmt')}">
+  ${errBox()}<div class="gap"><button class="btn" data-act="submitRating" data-id="${s.id}">Submit rating</button></div>`}
+  <div class="center"><button class="link" data-act="tab" data-to="me">View history</button></div>`;
+};
+
+VIEWS.me = () => {
+  const L = Repo.d.ledger.filter(l => l.uid === me.id), last = L.slice(-8);
+  const S = Repo.d.sessions.filter(s => s.status === 'done' && (s.askerId === me.id || s.helperId === me.id));
+  const today = new Date().toISOString().slice(0, 10), key = localStorage.getItem(AI_KEY);
+  const max = Math.max(10, ...last.map(l => l.balance)), W = 360, H = 150, bw = last.length ? Math.min(34, (W - 20) / last.length - 6) : 30;
+  const chart = last.length ? `<svg viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="Bar chart of points balance after each of your last ${last.length} transactions" style="width:100%">
+    ${last.map((l, i) => { const h = Math.round(l.balance / max * H), x = 10 + i * ((W - 20) / last.length) + 3; return `<rect x="${x}" y="${H - h + 4}" width="${bw}" height="${h}" rx="4" fill="#2c4f94"/><text x="${x + bw / 2}" y="${H - h}" font-size="12" text-anchor="middle" fill="#1a2233">${l.balance}</text><text x="${x + bw / 2}" y="${H + 20}" font-size="11" text-anchor="middle" fill="#5d6b86">${l.delta > 0 ? '+' : ''}${l.delta}</text>`; }).join('')}</svg>` : '<div class="empty">No points activity yet.</div>';
+  const rep = Repo.d.reports.filter(r => r.status === 'open');
+  return `<div class="row between"><h2>${esc(me.name)}</h2><span class="badge">${me.points} pts</span></div>
+  <p class="mute">${esc(me.email)} · ${me.role === 'mod' ? 'Moderator' : 'Student'}${me.n ? ` · ${me.rating} ★ (${me.n})` : ''}</p>
+  <button class="btn sec" data-act="checkin" ${me.lastCheckin === today ? 'disabled' : ''}>${me.lastCheckin === today ? '✓ Checked in today' : `Daily check-in (+${CHECKIN_PTS} pts)`}</button>
+  <h3>Points progress</h3><div class="card">${chart}<p class="mute center" style="margin:0">Balance after each transaction (change below bar)</p></div>
+  <h3>Session history</h3>
+  ${S.length ? `<div class="card">${S.map(s => { const a = s.askerId === me.id, o = Repo.user(a ? s.helperId : s.askerId); return `<div class="list-item"><span>${esc(s.subject)} with ${esc(o.name)}<br><span class="mute">${ago(s.endedAt)}</span></span><span class="${s.pts ? (a ? 'neg' : 'pos') : ''}">${s.pts ? (a ? '−' : '+') + s.pts : 'Swap'}</span></div>`; }).join('')}</div>` : '<div class="empty">No sessions yet.</div>'}
+  ${me.role === 'mod' ? `<h3>Moderator: reported items (${rep.length})</h3>${rep.length ? rep.map(r => `<div class="card"><span class="badge err">${esc(r.reason)}</span><p class="gap">${esc(r.detail)}</p><div class="row"><button class="btn sec sm" data-act="repDismiss" data-id="${r.id}">Dismiss</button><button class="btn danger sm" data-act="repRemove" data-id="${r.id}">Remove post</button></div></div>`).join('') : '<div class="empty">No open reports.</div>'}` : ''}
+  <h3>AI settings (Gemini)</h3>
+  <div class="card"><p class="mute">Status: ${key ? '✓ Gemini key saved on this device' : 'No key – using local rule-based tagging'}</p>
+  <label for="aikey">Gemini API key</label><input id="aikey" type="password" placeholder="Paste key (stored on this device only)" autocomplete="off">
+  <div class="row gap"><button class="btn sm" data-act="saveKey">Save</button>${key ? '<button class="btn danger sm" data-act="clearKey">Remove</button>' : ''}</div></div>
+  <div class="gap"><button class="btn sec" data-act="logout">Log out</button></div>
+  <div class="center"><button class="link" data-act="resetDemo">Reset demo data</button></div>`;
+};
+
+/* ---------- chat helpers ---------- */
+const REPLIES = {
+  Python: ['Check the line where the index is used. Does it go past len(list) - 1?', 'Try range(len(x)) instead of range(len(x)+1) and print the index to debug.', 'Nice. Test with a small list to confirm it works.'],
+  Calculus: ['Chain rule: differentiate the outer function, then multiply by the derivative of the inner one.', 'So d/dx sin(x²) = cos(x²) · 2x. Try one more example yourself.', 'Great, you got it.'],
+  English: ['Start with a clear thesis sentence, then give one idea per paragraph.', 'Try linking each paragraph back to your thesis.', 'Looks much clearer now.'],
+  Excel: ['Select your data, then Insert → PivotTable.', 'Drag the category to Rows and the amount to Values.', 'Perfect, that is the summary you wanted.']
+};
+const GENERIC = ['Thanks, that makes sense!', 'Oh I see, let me try that.', 'It works now, thank you!'];
+function renderMsgs() {
+  const box = $('#msgs'); if (!box) return; const s = Repo.d.sessions.find(x => x.id === route.arg);
+  box.innerHTML = s.messages.map(m => { const mine = m.from === me.id, n = Repo.user(m.from).name;
+    return `<div class="msg ${mine ? 'me' : ''}">${m.audio ? `<span>▶ Voice note ${m.secs}s</span><audio controls src="${m.audio}"></audio>` : esc(m.text)}<small>${mine ? 'You' : esc(n)} · ${ago(m.ts)}</small></div>`; }).join('') + (ui.typing ? '<div class="msg mute">Typing…</div>' : '');
+  box.lastElementChild?.scrollIntoView({ block: 'nearest' });
+}
+function startTimer() {
+  const s = Repo.d.sessions.find(x => x.id === route.arg); renderMsgs();
+  const tick = () => { const el = $('#timer'); if (!el) return clearInterval(timerId);
+    if (s.status !== 'active') { el.textContent = s.subject + ' · Session ended'; return; }
+    const left = s.durMs - (now() - s.startedAt);
+    if (left <= 0) { el.className = 'timer over'; el.textContent = '⏰ ' + s.subject + ' · Time is up – wrap up or mark as solved'; }
+    else { const m = Math.floor(left / 60000), sec = Math.floor(left % 60000 / 1000); el.textContent = `${s.subject} · ${m}:${String(sec).padStart(2, '0')} left`; } };
+  tick(); timerId = setInterval(tick, 1000);
+}
+function sendMsg(part) {
+  const s = Repo.d.sessions.find(x => x.id === route.arg); if (!s || s.status !== 'active') return;
+  s.messages.push({ from: me.id, ts: now(), ...part }); Repo.save(); renderMsgs();
+  const other = s.askerId === me.id ? s.helperId : s.askerId, sid = s.id; ui.typing = true; renderMsgs();
+  setTimeout(() => { const ss = Repo.d.sessions.find(x => x.id === sid); ui.typing = false;
+    if (!ss || ss.status !== 'active') return;
+    const mine = ss.messages.filter(m => m.from === me.id).length, bank = other === ss.helperId ? (REPLIES[ss.subject] || GENERIC) : GENERIC;
+    ss.messages.push({ from: other, text: bank[Math.min(mine - 1, bank.length - 1)], ts: now() }); Repo.save();
+    if (route.name === 'chat' && route.arg === sid) renderMsgs(); }, 1400);
+}
+async function toggleVoice() {
+  const btn = $('#voiceBtn');
+  if (rec) { rec.stop(); return; }
+  if (!navigator.mediaDevices || !window.MediaRecorder) return toast('Voice notes are not supported on this browser.', 'err');
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ audio: true }), chunks = [], mr = new MediaRecorder(st), t0 = now(); rec = mr;
+    mr.ondataavailable = e => chunks.push(e.data);
+    mr.onstop = () => { st.getTracks().forEach(t => t.stop()); rec = null; if (btn) btn.textContent = '🎤 Voice note';
+      const fr = new FileReader(); fr.onload = () => sendMsg({ audio: fr.result, secs: Math.max(1, Math.round((now() - t0) / 1000)) }); fr.readAsDataURL(new Blob(chunks, { type: mr.mimeType })); };
+    mr.start(); btn.textContent = '⏹ Stop recording'; setTimeout(() => { if (rec === mr && mr.state === 'recording') mr.stop(); }, 20000);
+  } catch (e) { toast('Microphone permission was denied.', 'err'); }
+}
+function resizePhoto(file) {
+  return new Promise((res, rej) => { const img = new Image(), fr = new FileReader();
+    fr.onload = () => { img.onload = () => { const k = Math.min(1, 640 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.7)); }; img.onerror = rej; img.src = fr.result; };
+    fr.onerror = rej; fr.readAsDataURL(file); });
+}
+
+/* ---------- 5. Actions & events ---------- */
+function afterLogin(u) {
+  me = u; localStorage.setItem(UID_KEY, u.id); ui.d = {}; ui.busy = false;
+  if (!u.onboarded) { ui.ob = 0; nav('onboarding'); } else nav('home');
+}
+function startSessionFrom(post, asHelper) {
+  const s = asHelper ? Repo.createSession({ post, askerId: post.authorId, helperId: me.id })
+    : Repo.createSession({ post, askerId: me.id, helperId: post.authorId });
+  closeSheet(); toast('Matched! Chat started.', 'ok'); nav('chat', s.id);
+}
+const ACT = {
+  nav: d => nav(d.to),
+  tab: d => { if (d.to === 'ask') ui.err = ''; nav(d.to); },
+  obNext: () => { if (ui.ob < 2) { ui.ob++; render(); } else ACT.obSkip(); },
+  obSkip: () => { me.onboarded = true; Repo.save(); nav('home'); },
+  quick: d => { ui.form.type = d.type; nav('ask'); },
+  filter: d => { ui.filter.subject = d.s; const q = ui.filter.q; render(); ui.filter.q = q; },
+  reload: () => loadHome(),
+  ftype: d => { ui.form.type = d.v; render(); },
+  fsub: d => { ui.form.subject = d.v; render(); },
+  fhelp: d => { ui.form.help = d.v; render(); },
+  pickPhoto: () => $('#photoIn').click(),
+  rmPhoto: () => { ui.photo = ''; render(); },
+  openCard: d => {
+    const p = Repo.d.posts.find(x => x.id === d.id), a = Repo.user(p.authorId), ask = p.type === 'ask';
+    showSheet(`<h2>${esc(p.subject)} · ${ask ? 'Asking' : 'Offering'}</h2><p class="mute">${esc(a.name)} ${a.rating ? '· ' + a.rating + ' ★' : ''} · ${ago(p.createdAt)} · ${p.help === '5min' ? FIVE_MIN_PTS + ' pts' : 'Swap'}</p>
+    ${p.photo ? `<img class="photo" src="${p.photo}" alt="Problem photo">` : ''}<p class="gap">${esc(p.desc)}</p>
+    <button class="btn" data-act="takeCard" data-id="${p.id}">${ask ? 'Help with this' : 'Request swap'}</button>
+    <div class="row gap"><button class="btn sec" data-act="closeSheet">Close</button><button class="btn danger" data-act="reportPost" data-id="${p.id}">Report</button></div>`);
+  },
+  closeSheet: () => closeSheet(),
+  takeCard: d => {
+    const p = Repo.d.posts.find(x => x.id === d.id);
+    if (p.type === 'offer' && p.help === '5min' && me.points < FIVE_MIN_PTS) return toast('Not enough points. Help others to earn more.', 'err');
+    p.type === 'ask' ? startSessionFrom(p, true) : startSessionFrom(p, false);
+  },
+  startHelper: d => { const p = Repo.d.posts.find(x => x.id === ui.lastPost); const s = Repo.createSession({ post: p, askerId: me.id, helperId: d.id }); closeSheet(); toast('Matched! Chat started.', 'ok'); nav('chat', s.id); },
+  openChat: d => nav('chat', d.id),
+  delPost: d => { Repo.deletePost(d.id); toast('Post deleted.', 'ok'); render(); },
+  voice: () => toggleVoice(),
+  solve: async () => {
+    const s = Repo.d.sessions.find(x => x.id === route.arg); ui.busy = true; render();
+    try { await Repo.finish(s.id); ui.busy = false; ui.stars = 0; toast('Points updated.', 'ok'); nav('result', s.id); }
+    catch (e) { ui.busy = false; render(); toast(e.message, 'err'); }
+  },
+  viewResult: d => { ui.stars = 0; nav('result', d.id); },
+  star: d => { ui.d.cmt = $('#cmt')?.value || ''; ui.stars = +d.v; render(); },
+  submitRating: d => {
+    if (!ui.stars) { ui.err = 'Please choose a star rating first.'; return render(); }
+    Repo.rate(d.id, me.id, ui.stars, $('#cmt').value.trim()); ui.d.cmt = ''; toast('Rating submitted.', 'ok'); render();
+  },
+  checkin: () => { me.points += CHECKIN_PTS; me.lastCheckin = new Date().toISOString().slice(0, 10); Repo.addLedger(me, CHECKIN_PTS, 'Daily check-in bonus'); Repo.save(); toast(`+${CHECKIN_PTS} points`, 'ok'); render(); },
+  saveKey: () => { const v = $('#aikey').value.trim(); if (v.length < 20) return toast('That does not look like a valid API key.', 'err'); localStorage.setItem(AI_KEY, v); toast('Gemini key saved on this device.', 'ok'); render(); },
+  clearKey: () => { localStorage.removeItem(AI_KEY); toast('Key removed.', 'ok'); render(); },
+  logout: () => { localStorage.removeItem(UID_KEY); me = null; ui.d = {}; nav('login'); },
+  resetDemo: () => { if (confirm('Reset all demo data on this device?')) { Repo.reset(); localStorage.removeItem(UID_KEY); me = null; toast('Demo data reset.', 'ok'); nav('login'); } },
+  report: d => showReport({ sessionId: d.id }),
+  reportPost: d => showReport({ postId: d.id }),
+  doReport: d => {
+    const t = ui.rep, detail = t.postId ? 'Post ' + t.postId : 'Session ' + t.sessionId;
+    Repo.report({ reason: d.r, detail: `${detail} reported by ${me.name}`, postId: t.postId || (Repo.d.sessions.find(s => s.id === t.sessionId) || {}).postId });
+    closeSheet(); toast('Report sent to moderator. Thank you.', 'ok');
+  },
+  repDismiss: d => { Repo.d.reports.find(r => r.id === d.id).status = 'closed'; Repo.save(); toast('Report dismissed.', 'ok'); render(); },
+  repRemove: d => { const r = Repo.d.reports.find(x => x.id === d.id); if (r.postId) Repo.deletePost(r.postId); r.status = 'closed'; Repo.save(); toast('Post removed.', 'ok'); render(); }
+};
+function showReport(t) {
+  ui.rep = t;
+  showSheet(`<h2>Report</h2><p class="mute">Why are you reporting this?</p>${['Spam', 'Asking to complete graded work', 'Abusive behaviour'].map(r => `<button class="btn sec gap" data-act="doReport" data-r="${r}">${r}</button>`).join('')}<button class="link" data-act="closeSheet">Cancel</button>`);
+}
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'sheetWrap') return closeSheet();
+  const b = e.target.closest('[data-act]'); if (b && ACT[b.dataset.act]) ACT[b.dataset.act](b.dataset, b);
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'q') { ui.filter.q = t.value; drawList(); }
+  else if (t.name) ui.d[t.name] = t.value;
+});
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'photoIn' || !e.target.files[0]) return;
+  try { ui.photo = await resizePhoto(e.target.files[0]); render(); toast('Photo added.', 'ok'); } catch (x) { toast('Could not read that image. Try another photo.', 'err'); }
+});
+document.addEventListener('submit', async e => {
+  e.preventDefault(); const f = e.target.dataset.form, d = ui.d;
+  if (f === 'login') {
+    const em = (d.email || '').trim(), pw = d.pw || '';
+    if (!/^\S+@\S+\.\S+$/.test(em)) { ui.err = 'Enter a valid email address.'; return render(); }
+    if (!pw) { ui.err = 'Enter your password.'; return render(); }
+    ui.busy = true; ui.err = ''; render();
+    try { afterLogin(await Repo.login(em, pw)); } catch (x) { ui.busy = false; ui.err = x.message; render(); }
+  } else if (f === 'signup') {
+    if (!(d.name || '').trim()) { ui.err = 'Enter a display name.'; return render(); }
+    if (!/^\S+@\S+\.\S+$/.test((d.email || '').trim())) { ui.err = 'Enter a valid email address.'; return render(); }
+    if ((d.pw || '').length < 6) { ui.err = 'Password must be at least 6 characters.'; return render(); }
+    ui.busy = true; ui.err = ''; render();
+    try { afterLogin(await Repo.register(d.name, d.email, d.pw)); toast('Account created! +' + STARTER_PTS + ' pts', 'ok'); } catch (x) { ui.busy = false; ui.err = x.message; render(); }
+  } else if (f === 'msg') {
+    const v = $('#msgIn').value.trim(); if (!v) return; $('#msgIn').value = ''; sendMsg({ text: v });
+  } else if (f === 'post') {
+    const fm = ui.form, desc = (d.desc || '').trim();
+    if (!fm.subject) { ui.err = 'Please choose a subject.'; return render(); }
+    if (desc.length < 10) { ui.err = 'Please describe your request in at least 10 characters.'; return render(); }
+    if (fm.type === 'ask' && fm.help === '5min' && me.points < FIVE_MIN_PTS) { ui.err = `You need ${FIVE_MIN_PTS} points for 5-min help. Choose a swap or earn points by helping.`; return render(); }
+    ui.busy = true; ui.err = ''; render();
+    try {
+      const ai = fm.type === 'ask' ? await aiAnalyse(desc, fm.subject) : { subject: fm.subject, difficulty: 'Easy', source: '' };
+      const post = await Repo.createPost({ type: fm.type, subject: fm.subject, help: fm.help, desc, photo: ui.photo, authorId: me.id, difficulty: ai.difficulty });
+      ui.busy = false; ui.d.desc = ''; ui.photo = ''; ui.lastPost = post.id;
+      if (fm.type === 'offer') { toast('Offer posted.', 'ok'); return nav('home'); }
+      const ranked = Repo.rankHelpers(ai.subject !== 'Other' ? ai.subject : fm.subject, me.id);
+      render();
+      showSheet(`<h2>AI analysis</h2><p><span class="badge">${esc(ai.subject)}</span> <span class="badge warn">${esc(ai.difficulty)}</span></p>
+        <p class="mute">Source: ${esc(ai.source)}${ai.subject !== fm.subject && ai.subject !== 'Other' ? ` · AI suggests <b>${esc(ai.subject)}</b> (you chose ${esc(fm.subject)})` : ''}</p>
+        <h3>Ranked helpers</h3>${ranked.map(({ u, match }) => `<div class="card"><div class="row between"><b>${esc(u.name)} · ${u.rating} ★</b><span class="badge ${u.avail ? 'swap' : 'err'}">${u.avail ? '● Online' : '○ Offline'}</span></div><p class="mute">${match ? '✓ Strong in ' + esc(u.subjects.join(', ')) : 'Other subjects: ' + esc(u.subjects.join(', '))}</p><button class="btn" data-act="startHelper" data-id="${u.id}">Chat with ${esc(u.name)}</button></div>`).join('')}
+        <button class="btn sec" data-act="closeSheet">Wait for someone else</button>`);
+      toast('Request posted.', 'ok');
+    } catch (x) { ui.busy = false; ui.err = 'Could not post. Please try again.'; render(); }
+  }
+});
+
+/* boot */
+Repo.load();
+const saved = localStorage.getItem(UID_KEY);
+if (saved && Repo.user(saved)) { me = Repo.user(saved); route = { name: me.onboarded ? 'home' : 'onboarding' }; }
+render();
+</script>
+</body>
+</html>
